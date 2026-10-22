@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../service/login_service.dart';
 import 'beranda.dart';
 
 class Login extends StatefulWidget {
@@ -165,12 +166,37 @@ class _LoginState extends State<Login> {
             borderRadius: BorderRadius.circular(10.0),
           ),
         ),
-        onPressed: () {
+        onPressed: () async {
           if (_formKey.currentState!.validate()) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const Beranda()),
-            );
+            String username = _usernameCtrl.text;
+            String password = _passwordCtrl.text;
+            bool isLoginSuccess = await LoginService().login(username, password);
+
+            if (!mounted) return;
+
+            if (isLoginSuccess) {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const Beranda()),
+              );
+            } else {
+              AlertDialog alertDialog = AlertDialog(
+                content: const Text("Username atau Password Tidak Valid"),
+                actions: [
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text("OK"),
+                  ),
+                ],
+              );
+              showDialog(context: context, builder: (context) => alertDialog);
+            }
           }
         },
         child: const Text(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../helpers/user_info.dart';
 import '../ui/poli/poli_page.dart';
 import '../ui/pegawai/pegawai_page.dart';
 import '../ui/pasien/pasien_page.dart';
@@ -74,11 +75,13 @@ class Sidebar extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.logout_rounded),
             title: const Text("Keluar"),
-            onTap: () {
+            onTap: () async {
+              await UserInfo().logout();
+              if (!context.mounted) return;
               Navigator.pushAndRemoveUntil(
                 context,
                 MaterialPageRoute(builder: (context) => const Login()),
-                    (Route<dynamic> route) => false,
+                (Route<dynamic> route) => false,
               );
             },
           ),
