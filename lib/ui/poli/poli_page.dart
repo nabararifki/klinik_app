@@ -3,6 +3,7 @@ import '../../model/poli.dart';
 import '../../widget/sidebar.dart';
 import 'poli_item.dart';
 import 'poli_form.dart';
+import '../../service/poli_service.dart';
 
 class PoliPage extends StatefulWidget {
   const PoliPage({super.key});
@@ -12,6 +13,11 @@ class PoliPage extends StatefulWidget {
 }
 
 class _PoliPageState extends State<PoliPage> {
+  Stream<List<Poli>> getList() async* {
+    List<Poli> data = await PoliService().listData();
+    yield data;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -25,26 +31,35 @@ class _PoliPageState extends State<PoliPage> {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const PoliForm()),
-              );
+              ).then((value) {
+                setState(() {});
+              });
             },
           ),
         ],
       ),
-      body: ListView(
-        children: [
-          PoliItem(
-            poli: Poli(namaPoli: "Poli Anak"),
-          ),
-          PoliItem(
-            poli: Poli(namaPoli: "Poli Kandungan"),
-          ),
-          PoliItem(
-            poli: Poli(namaPoli: "Poli Gigi"),
-          ),
-          PoliItem(
-            poli: Poli(namaPoli: "Poli THT"),
-          ),
-        ],
+      body: StreamBuilder<List<Poli>>(
+        stream: getList(),
+        builder: (context, AsyncSnapshot<List<Poli>> snapshot) {
+          if (snapshot.hasError) {
+            return Center(child: Text(snapshot.error.toString()));
+          }
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return const Center(child: Text("Data Kosong"));
+          }
+
+          return ListView.builder(
+            itemCount: snapshot.data!.length,
+            itemBuilder: (context, index) {
+              return PoliItem(poli: snapshot.data![index]);
+            },
+          );
+        },
       ),
     );
   }

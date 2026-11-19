@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../model/poli.dart';
 import 'poli_detail.dart';
+import '../../service/poli_service.dart';
 
 class PoliForm extends StatefulWidget {
   const PoliForm({super.key});
@@ -12,6 +13,12 @@ class PoliForm extends StatefulWidget {
 class _PoliFormState extends State<PoliForm> {
   final _formKey = GlobalKey<FormState>();
   final _namaPoliCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _namaPoliCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,20 +45,35 @@ class _PoliFormState extends State<PoliForm> {
   }
 
   Widget _fieldNamaPoli() {
-    return TextField(
+    return TextFormField(
       controller: _namaPoliCtrl,
       decoration: const InputDecoration(
         labelText: "Nama Poli",
       ),
+      validator: (value) {
+        if (value == null || value.trim().isEmpty) {
+          return "Nama Poli tidak boleh kosong";
+        }
+        return null;
+      },
     );
   }
 
   Widget _tombolSimpan() {
     return ElevatedButton(
-      onPressed: () {
-        Poli poli = Poli(namaPoli: _namaPoliCtrl.text);
-          Navigator.pushReplacement(context,
-          MaterialPageRoute(builder: (context) => PoliDetail(poli: poli)));
+      onPressed: () async {
+        if (_formKey.currentState!.validate()) {
+          Poli poli = Poli(namaPoli: _namaPoliCtrl.text);
+          await PoliService().simpan(poli).then((value) {
+            if (!mounted) return;
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => PoliDetail(poli: value),
+              ),
+            );
+          });
+        }
       },
       child: const Text("Simpan"),
     );
