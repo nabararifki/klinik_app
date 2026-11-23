@@ -56,7 +56,10 @@ class _PoliPageState extends State<PoliPage> {
           return ListView.builder(
             itemCount: snapshot.data!.length,
             itemBuilder: (context, index) {
-              return PoliItem(poli: snapshot.data![index]);
+              return PoliItem(
+                poli: snapshot.data![index],
+                onRefresh: () => setState(() {}),
+              );
             },
           );
         },

@@ -56,7 +56,10 @@ class _PasienPageState extends State<PasienPage> {
           return ListView.builder(
             itemCount: snapshot.data!.length,
             itemBuilder: (context, index) {
-              return PasienItem(pasien: snapshot.data![index]);
+              return PasienItem(
+                pasien: snapshot.data![index],
+                onRefresh: () => setState(() {}),
+              );
             },
           );
         },

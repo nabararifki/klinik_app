@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../model/poli.dart';
-import 'poli_detail.dart';
+import '../../service/poli_service.dart';
 
 class PoliUpdateForm extends StatefulWidget {
   final Poli poli;
@@ -14,13 +14,36 @@ class PoliUpdateForm extends StatefulWidget {
 class _PoliUpdateFormState extends State<PoliUpdateForm> {
   final _formKey = GlobalKey<FormState>();
   final _namaPoliCtrl = TextEditingController();
+  bool _isSubmitting = false;
+
+  Future<void> getData() async {
+    final id = widget.poli.id;
+    if (id == null || id.isEmpty) return;
+    try {
+      Poli data = await PoliService().getById(id);
+      if (!mounted) return;
+      setState(() {
+        _namaPoliCtrl.text = data.namaPoli;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Gagal memuat data: $e")),
+      );
+    }
+  }
 
   @override
   void initState() {
     super.initState();
-    setState(() {
-      _namaPoliCtrl.text = widget.poli.namaPoli;
-    });
+    _namaPoliCtrl.text = widget.poli.namaPoli;
+    getData();
+  }
+
+  @override
+  void dispose() {
+    _namaPoliCtrl.dispose();
+    super.dispose();
   }
 
   @override
@@ -45,26 +68,62 @@ class _PoliUpdateFormState extends State<PoliUpdateForm> {
     );
   }
 
-  TextField _fieldNamaPoli() {
-    return TextField(
+  Widget _fieldNamaPoli() {
+    return TextFormField(
       controller: _namaPoliCtrl,
       decoration: const InputDecoration(
         labelText: "Nama Poli",
       ),
+      validator: (value) {
+        if (value == null || value.trim().isEmpty) {
+          return "Nama Poli tidak boleh kosong";
+        }
+        return null;
+      },
     );
   }
 
-  ElevatedButton _tombolSimpan() {
+  Widget _tombolSimpan() {
     return ElevatedButton(
-      onPressed: () {
-        Poli poli = Poli(namaPoli: _namaPoliCtrl.text);
-        Navigator.pop(context);
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => PoliDetail(poli: poli)),
-        );
-      },
-      child: const Text("Simpan Perubahan"),
+      onPressed: _isSubmitting
+          ? null
+          : () async {
+              if (!_formKey.currentState!.validate()) return;
+              final id = widget.poli.id;
+              if (id == null || id.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("ID Poli tidak ditemukan")),
+                );
+                return;
+              }
+              setState(() {
+                _isSubmitting = true;
+              });
+              try {
+                Poli poli = Poli(namaPoli: _namaPoliCtrl.text.trim());
+                Poli updated = await PoliService().ubah(poli, id);
+                if (!mounted) return;
+                Navigator.pop(context, updated);
+              } catch (e) {
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text("Gagal menyimpan perubahan: $e")),
+                );
+              } finally {
+                if (mounted) {
+                  setState(() {
+                    _isSubmitting = false;
+                  });
+                }
+              }
+            },
+      child: _isSubmitting
+          ? const SizedBox(
+              height: 20,
+              width: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : const Text("Simpan Perubahan"),
     );
   }
 }

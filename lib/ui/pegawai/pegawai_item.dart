@@ -4,8 +4,13 @@ import 'pegawai_detail.dart';
 
 class PegawaiItem extends StatelessWidget {
   final Pegawai pegawai;
+  final VoidCallback? onRefresh;
 
-  const PegawaiItem({super.key, required this.pegawai});
+  const PegawaiItem({
+    super.key,
+    required this.pegawai,
+    this.onRefresh,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -16,13 +21,14 @@ class PegawaiItem extends StatelessWidget {
           subtitle: Text("NIP: ${pegawai.nip}"),
         ),
       ),
-      onTap: () {
-        Navigator.push(
+      onTap: () async {
+        await Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => PegawaiDetail(pegawai: pegawai),
           ),
         );
+        onRefresh?.call();
       },
     );
   }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../model/pegawai.dart';
+import '../../service/pegawai_service.dart';
 import 'pegawai_update_form.dart';
 import 'pegawai_page.dart';
 
@@ -13,6 +14,22 @@ class PegawaiDetail extends StatefulWidget {
 }
 
 class _PegawaiDetailState extends State<PegawaiDetail> {
+  late Future<Pegawai> _pegawaiFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _pegawaiFuture = _fetchData();
+  }
+
+  Future<Pegawai> _fetchData() {
+    final id = widget.pegawai.id;
+    if (id == null || id.isEmpty) {
+      return Future.value(widget.pegawai);
+    }
+    return PegawaiService().getById(id);
+  }
+
   Widget _buildPhotoPlaceholder() {
     return Container(
       width: 120,
@@ -43,7 +60,10 @@ class _PegawaiDetailState extends State<PegawaiDetail> {
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ),
-          const Text(" : ", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          const Text(
+            " : ",
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
           Expanded(
             child: Text(
               value,
@@ -55,15 +75,20 @@ class _PegawaiDetailState extends State<PegawaiDetail> {
     );
   }
 
-  ElevatedButton _tombolUbah() {
+  Widget _tombolUbah(Pegawai pegawai) {
     return ElevatedButton(
-      onPressed: () {
-        Navigator.push(
+      onPressed: () async {
+        final updated = await Navigator.push<Pegawai>(
           context,
           MaterialPageRoute(
-            builder: (context) => PegawaiUpdateForm(pegawai: widget.pegawai),
+            builder: (context) => PegawaiUpdateForm(pegawai: pegawai),
           ),
         );
+        if (updated != null && mounted) {
+          setState(() {
+            _pegawaiFuture = Future.value(updated);
+          });
+        }
       },
       style: ElevatedButton.styleFrom(
         backgroundColor: Colors.green,
@@ -73,46 +98,63 @@ class _PegawaiDetailState extends State<PegawaiDetail> {
     );
   }
 
-  ElevatedButton _tombolHapus() {
+  Widget _tombolHapus(Pegawai pegawai) {
     return ElevatedButton(
       onPressed: () {
-        AlertDialog alertDialog = AlertDialog(
-          content: const Text("Yakin ingin menghapus data ini?"),
-          actions: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                // tombol ya
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (context) => const PegawaiPage()),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    foregroundColor: Colors.white,
+        showDialog(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            content: const Text("Yakin ingin menghapus data ini?"),
+            actions: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  ElevatedButton(
+                    onPressed: () async {
+                      try {
+                        await PegawaiService().hapus(pegawai);
+                        if (dialogContext.mounted) {
+                          Navigator.pop(dialogContext);
+                        }
+                        if (!mounted) return;
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const PegawaiPage(),
+                          ),
+                          (route) => false,
+                        );
+                      } catch (e) {
+                        if (dialogContext.mounted) {
+                          Navigator.pop(dialogContext);
+                        }
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text("Gagal menghapus data: $e")),
+                        );
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text("Ya"),
                   ),
-                  child: const Text("Ya"),
-                ),
-                // tombol batal
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    foregroundColor: Colors.white,
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(dialogContext);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text("Tidak"),
                   ),
-                  child: const Text("Tidak"),
-                ),
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
         );
-        showDialog(context: context, builder: (context) => alertDialog);
       },
       style: ElevatedButton.styleFrom(
         backgroundColor: Colors.red,
@@ -122,12 +164,12 @@ class _PegawaiDetailState extends State<PegawaiDetail> {
     );
   }
 
-  Widget _buildActionButtons() {
+  Widget _buildActionButtons(Pegawai pegawai) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        _tombolUbah(),
-        _tombolHapus(),
+        _tombolUbah(pegawai),
+        _tombolHapus(pegawai),
       ],
     );
   }
@@ -136,49 +178,67 @@ class _PegawaiDetailState extends State<PegawaiDetail> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Detail Pegawai")),
-      body: OrientationBuilder(
-        builder: (context, orientation) {
-          final isLandscape = orientation == Orientation.landscape;
-
-          List<Widget> infoContent = [
-            _buildDetailRow("NIP", widget.pegawai.nip),
-            _buildDetailRow("Nama", widget.pegawai.nama),
-            _buildDetailRow("Tanggal Lahir", widget.pegawai.tanggalLahir),
-            _buildDetailRow("No. Telepon", widget.pegawai.nomorTelepon),
-            _buildDetailRow("Email", widget.pegawai.email),
-            const SizedBox(height: 20),
-            _buildActionButtons(),
-          ];
-
-          if (isLandscape) {
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildPhotoPlaceholder(),
-                  const SizedBox(width: 24),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: infoContent,
-                    ),
-                  ),
-                ],
-              ),
-            );
-          } else {
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                children: [
-                  _buildPhotoPlaceholder(),
-                  const SizedBox(height: 20),
-                  ...infoContent,
-                ],
-              ),
+      body: FutureBuilder<Pegawai>(
+        future: _pegawaiFuture,
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Center(child: Text(snapshot.error.toString()));
+          }
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const Center(
+              child: CircularProgressIndicator(),
             );
           }
+          if (!snapshot.hasData) {
+            return const Center(child: Text("Data Tidak Ditemukan"));
+          }
+
+          final Pegawai pegawai = snapshot.data!;
+          return OrientationBuilder(
+            builder: (context, orientation) {
+              final isLandscape = orientation == Orientation.landscape;
+
+              List<Widget> infoContent = [
+                _buildDetailRow("NIP", pegawai.nip),
+                _buildDetailRow("Nama", pegawai.nama),
+                _buildDetailRow("Tanggal Lahir", pegawai.tanggalLahir),
+                _buildDetailRow("No. Telepon", pegawai.nomorTelepon),
+                _buildDetailRow("Email", pegawai.email),
+                const SizedBox(height: 20),
+                _buildActionButtons(pegawai),
+              ];
+
+              if (isLandscape) {
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildPhotoPlaceholder(),
+                      const SizedBox(width: 24),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: infoContent,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              } else {
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    children: [
+                      _buildPhotoPlaceholder(),
+                      const SizedBox(height: 20),
+                      ...infoContent,
+                    ],
+                  ),
+                );
+              }
+            },
+          );
         },
       ),
     );

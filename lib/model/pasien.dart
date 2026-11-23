@@ -1,5 +1,5 @@
 class Pasien {
-  int? id;
+  String? id;
   String nomorRm;
   String nama;
   String tanggalLahir;
@@ -16,7 +16,7 @@ class Pasien {
   });
 
   factory Pasien.fromJson(Map<String, dynamic> json) => Pasien(
-        id: json["id"] != null ? int.tryParse(json["id"].toString()) : null,
+        id: json["id"]?.toString(),
         nomorRm: json["nomor_rm"] ?? json["nomorRm"] ?? "",
         nama: json["nama"] ?? "",
         tanggalLahir: json["tanggal_lahir"] ?? json["tanggalLahir"] ?? "",

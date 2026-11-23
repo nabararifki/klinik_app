@@ -4,8 +4,13 @@ import 'pasien_detail.dart';
 
 class PasienItem extends StatelessWidget {
   final Pasien pasien;
+  final VoidCallback? onRefresh;
 
-  const PasienItem({super.key, required this.pasien});
+  const PasienItem({
+    super.key,
+    required this.pasien,
+    this.onRefresh,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -16,13 +21,14 @@ class PasienItem extends StatelessWidget {
           subtitle: Text("No. RM: ${pasien.nomorRm}"),
         ),
       ),
-      onTap: () {
-        Navigator.push(
+      onTap: () async {
+        await Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => PasienDetail(pasien: pasien),
           ),
         );
+        onRefresh?.call();
       },
     );
   }

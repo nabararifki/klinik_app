@@ -18,6 +18,7 @@ class _PegawaiFormState extends State<PegawaiForm> {
   final _nomorTeleponCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
+  bool _isSubmitting = false;
 
   @override
   void dispose() {
@@ -143,28 +144,50 @@ class _PegawaiFormState extends State<PegawaiForm> {
 
   Widget _tombolSimpan() {
     return ElevatedButton(
-      onPressed: () async {
-        if (_formKey.currentState!.validate()) {
-          Pegawai pegawai = Pegawai(
-            nip: _nipCtrl.text,
-            nama: _namaCtrl.text,
-            tanggalLahir: _tanggalLahirCtrl.text,
-            nomorTelepon: _nomorTeleponCtrl.text,
-            email: _emailCtrl.text,
-            password: _passwordCtrl.text,
-          );
-          await PegawaiService().simpan(pegawai).then((value) {
-            if (!mounted) return;
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => PegawaiDetail(pegawai: value),
-              ),
-            );
-          });
-        }
-      },
-      child: const Text("Simpan"),
+      onPressed: _isSubmitting
+          ? null
+          : () async {
+              if (!_formKey.currentState!.validate()) return;
+              setState(() {
+                _isSubmitting = true;
+              });
+              try {
+                Pegawai pegawai = Pegawai(
+                  nip: _nipCtrl.text.trim(),
+                  nama: _namaCtrl.text.trim(),
+                  tanggalLahir: _tanggalLahirCtrl.text.trim(),
+                  nomorTelepon: _nomorTeleponCtrl.text.trim(),
+                  email: _emailCtrl.text.trim(),
+                  password: _passwordCtrl.text.trim(),
+                );
+                Pegawai saved = await PegawaiService().simpan(pegawai);
+                if (!mounted) return;
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => PegawaiDetail(pegawai: saved),
+                  ),
+                );
+              } catch (e) {
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text("Gagal menyimpan data: $e")),
+                );
+              } finally {
+                if (mounted) {
+                  setState(() {
+                    _isSubmitting = false;
+                  });
+                }
+              }
+            },
+      child: _isSubmitting
+          ? const SizedBox(
+              height: 20,
+              width: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : const Text("Simpan"),
     );
   }
 }

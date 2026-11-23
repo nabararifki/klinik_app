@@ -13,6 +13,7 @@ class PoliForm extends StatefulWidget {
 class _PoliFormState extends State<PoliForm> {
   final _formKey = GlobalKey<FormState>();
   final _namaPoliCtrl = TextEditingController();
+  bool _isSubmitting = false;
 
   @override
   void dispose() {
@@ -61,21 +62,43 @@ class _PoliFormState extends State<PoliForm> {
 
   Widget _tombolSimpan() {
     return ElevatedButton(
-      onPressed: () async {
-        if (_formKey.currentState!.validate()) {
-          Poli poli = Poli(namaPoli: _namaPoliCtrl.text);
-          await PoliService().simpan(poli).then((value) {
-            if (!mounted) return;
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => PoliDetail(poli: value),
-              ),
-            );
-          });
-        }
-      },
-      child: const Text("Simpan"),
+      onPressed: _isSubmitting
+          ? null
+          : () async {
+              if (!_formKey.currentState!.validate()) return;
+              setState(() {
+                _isSubmitting = true;
+              });
+              try {
+                Poli poli = Poli(namaPoli: _namaPoliCtrl.text.trim());
+                Poli saved = await PoliService().simpan(poli);
+                if (!mounted) return;
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => PoliDetail(poli: saved),
+                  ),
+                );
+              } catch (e) {
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text("Gagal menyimpan data: $e")),
+                );
+              } finally {
+                if (mounted) {
+                  setState(() {
+                    _isSubmitting = false;
+                  });
+                }
+              }
+            },
+      child: _isSubmitting
+          ? const SizedBox(
+              height: 20,
+              width: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : const Text("Simpan"),
     );
   }
 }

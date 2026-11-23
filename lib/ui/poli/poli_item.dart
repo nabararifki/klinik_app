@@ -4,10 +4,12 @@ import 'poli_detail.dart';
 
 class PoliItem extends StatelessWidget {
   final Poli poli;
+  final VoidCallback? onRefresh;
 
   const PoliItem({
     super.key,
-    required this.poli
+    required this.poli,
+    this.onRefresh,
   });
 
   @override
@@ -15,16 +17,17 @@ class PoliItem extends StatelessWidget {
     return GestureDetector(
       child: Card(
         child: ListTile(
-          title: Text("${poli.namaPoli}"),
+          title: Text(poli.namaPoli),
         ),
       ),
-      onTap: () {
-        Navigator.push(
+      onTap: () async {
+        await Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => PoliDetail(poli: poli)
-          )
+            builder: (context) => PoliDetail(poli: poli),
+          ),
         );
+        onRefresh?.call();
       },
     );
   }

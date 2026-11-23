@@ -17,6 +17,7 @@ class _PasienFormState extends State<PasienForm> {
   final _tanggalLahirCtrl = TextEditingController();
   final _nomorTeleponCtrl = TextEditingController();
   final _alamatCtrl = TextEditingController();
+  bool _isSubmitting = false;
 
   @override
   void dispose() {
@@ -125,27 +126,49 @@ class _PasienFormState extends State<PasienForm> {
 
   Widget _tombolSimpan() {
     return ElevatedButton(
-      onPressed: () async {
-        if (_formKey.currentState!.validate()) {
-          Pasien pasien = Pasien(
-            nomorRm: _nomorRmCtrl.text,
-            nama: _namaCtrl.text,
-            tanggalLahir: _tanggalLahirCtrl.text,
-            nomorTelepon: _nomorTeleponCtrl.text,
-            alamat: _alamatCtrl.text,
-          );
-          await PasienService().simpan(pasien).then((value) {
-            if (!mounted) return;
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => PasienDetail(pasien: value),
-              ),
-            );
-          });
-        }
-      },
-      child: const Text("Simpan"),
+      onPressed: _isSubmitting
+          ? null
+          : () async {
+              if (!_formKey.currentState!.validate()) return;
+              setState(() {
+                _isSubmitting = true;
+              });
+              try {
+                Pasien pasien = Pasien(
+                  nomorRm: _nomorRmCtrl.text.trim(),
+                  nama: _namaCtrl.text.trim(),
+                  tanggalLahir: _tanggalLahirCtrl.text.trim(),
+                  nomorTelepon: _nomorTeleponCtrl.text.trim(),
+                  alamat: _alamatCtrl.text.trim(),
+                );
+                Pasien saved = await PasienService().simpan(pasien);
+                if (!mounted) return;
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => PasienDetail(pasien: saved),
+                  ),
+                );
+              } catch (e) {
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text("Gagal menyimpan data: $e")),
+                );
+              } finally {
+                if (mounted) {
+                  setState(() {
+                    _isSubmitting = false;
+                  });
+                }
+              }
+            },
+      child: _isSubmitting
+          ? const SizedBox(
+              height: 20,
+              width: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : const Text("Simpan"),
     );
   }
 }
